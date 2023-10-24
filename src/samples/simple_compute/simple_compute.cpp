@@ -230,10 +230,10 @@ void SimpleCompute::Execute()
   std::vector<float> values(m_length);
   m_pCopyHelper->ReadBuffer(m_sum, 0, values.data(), sizeof(float) * values.size());
   double diff_sum = 0.0;
-  auto duration = std::chrono::high_resolution_clock::now() - start_time;
   for (auto v: values) {
     diff_sum += v;
   }
+  auto duration = std::chrono::high_resolution_clock::now() - start_time;
   std::cout << "Result sum on GPU: " << diff_sum << '\n';
   std::cout << "Time on GPU: " << std::chrono::duration_cast<std::chrono::milliseconds>(duration).count() << " ms\n";
 
