@@ -1,6 +1,6 @@
 #version 430
 
-layout( local_size_x = 32 ) in;
+layout( local_size_x = 512 ) in;
 
 layout( push_constant ) uniform params {
   uint len;
@@ -16,15 +16,22 @@ layout(std430, binding = 1) buffer b
     float B[];
 };
 
-layout(std430, binding = 2) buffer Sum
+layout(std430, binding = 2) buffer Diff
 {
-    float sum[];
+    float diff[];
 };
 
 void main() 
 {
-    uint idx = gl_GlobalInvocationID.x;
+    size_t idx = gl_GlobalInvocationID.x;
     if (idx < PushConstant.len) {
-        sum[idx] = A[idx] + B[idx];
+        float smoothed = 0
+        for (int64_t i = int64_t(idx) - 3; i < idx + 4; ++i) {
+            if (i >= 0 && i < int64_t(PushConstant.len)) {
+                smoothed += A[i] / 7.0f;
+            }
+        }
+        B[idx] = smoothed;
+        diff[idx] = A[idx] - B[idx];
     }
 }

@@ -1,8 +1,9 @@
 #include "simple_compute.h"
 
+
 int main()
 {
-  constexpr int LENGTH = 10;
+  constexpr int LENGTH = 166'666'666;
   constexpr int VULKAN_DEVICE_ID = 0;
 
   std::shared_ptr<ICompute> app = std::make_unique<SimpleCompute>(LENGTH);

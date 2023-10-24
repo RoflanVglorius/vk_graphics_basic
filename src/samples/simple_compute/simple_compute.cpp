@@ -1,3 +1,6 @@
+#include <random>
+#include <chrono>
+
 #include "simple_compute.h"
 
 #include <vk_pipeline.h>
@@ -96,12 +99,12 @@ void SimpleCompute::SetupSimplePipeline()
 
   // Заполнение буферов
   std::vector<float> values(m_length);
-  for (uint32_t i = 0; i < values.size(); ++i) {
-    values[i] = (float)i;
+  for (size_t i = 0; i < values.size(); ++i) {
+    values[i] = float(rand()) / float(RAND_MAX);
   }
   m_pCopyHelper->UpdateBuffer(m_A, 0, values.data(), sizeof(float) * values.size());
-  for (uint32_t i = 0; i < values.size(); ++i) {
-    values[i] = (float)i * i;
+  for (size_t i = 0; i < values.size(); ++i) {
+    values[i] = 0.0;
   }
   m_pCopyHelper->UpdateBuffer(m_B, 0, values.data(), sizeof(float) * values.size());
 }
@@ -122,7 +125,7 @@ void SimpleCompute::BuildCommandBufferSimple(VkCommandBuffer a_cmdBuff, VkPipeli
 
   vkCmdPushConstants(a_cmdBuff, m_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(m_length), &m_length);
 
-  vkCmdDispatch(a_cmdBuff, 1, 1, 1);
+  vkCmdDispatch(a_cmdBuff, m_length / 512 + (m_length % 512 > 0 ? 1 : 0), 1, 1);
 
   VK_CHECK_RESULT(vkEndCommandBuffer(a_cmdBuff));
 }
@@ -218,6 +221,7 @@ void SimpleCompute::Execute()
   VK_CHECK_RESULT(vkCreateFence(m_device, &fenceCreateInfo, NULL, &m_fence));
 
   // Отправляем буфер команд на выполнение
+  auto start_time = std::chrono::high_resolution_clock::now();
   VK_CHECK_RESULT(vkQueueSubmit(m_computeQueue, 1, &submitInfo, m_fence));
 
   //Ждём конца выполнения команд
@@ -225,7 +229,35 @@ void SimpleCompute::Execute()
 
   std::vector<float> values(m_length);
   m_pCopyHelper->ReadBuffer(m_sum, 0, values.data(), sizeof(float) * values.size());
+  double diff_sum = 0.0;
+  auto duration = std::chrono::high_resolution_clock::now() - start_time;
   for (auto v: values) {
-    std::cout << v << ' ';
+    diff_sum += v;
   }
+  std::cout << "Result sum on GPU: " << diff_sum << '\n';
+  std::cout << "Time on GPU: " << std::chrono::duration_cast<std::chrono::milliseconds>(duration).count() << " ms\n";
+
+  start_time = std::chrono::high_resolution_clock::now();
+  std::vector<float> cpu_buffer(m_length);
+  for (size_t i = 0; i < cpu_buffer.size(); ++i) {
+    cpu_buffer[i] = float(rand()) / float(RAND_MAX);
+  }
+  diff_sum = 0;
+  for (int64_t i = 0; i < int64_t(cpu_buffer.size()); ++i) {
+    float smoothed = 0;
+    for (int64_t j = i - 3; j < i + 4; ++j) {
+        if (j >= 0 && j < int64_t(cpu_buffer.size())) {
+            smoothed += cpu_buffer[j] / 7.0;
+        }
+    }
+    cpu_buffer[i] = cpu_buffer[i] - smoothed;
+  }
+  for (size_t i = 0; i < cpu_buffer.size(); ++i) {
+    diff_sum += cpu_buffer[i];
+  }
+  duration = std::chrono::high_resolution_clock::now() - start_time;
+  std::cout << "Result sum on CPU: " << diff_sum << '\n';
+  std::cout << "Time on CPU: " << std::chrono::duration_cast<std::chrono::milliseconds>(duration).count() << " ms\n";
+  std::cout << "Press any key to continue\n";
+  std::getchar();
 }
