@@ -12,6 +12,7 @@ layout(push_constant) uniform params_t
 {
     mat4 mProjView;
     mat4 mModel;
+    float mTime;
 } params;
 
 
@@ -31,6 +32,11 @@ void main(void)
     const vec4 wTang = vec4(DecodeNormal(floatBitsToInt(vTexCoordAndTang.z)), 0.0f);
 
     vOut.wPos     = (params.mModel * vec4(vPosNorm.xyz, 1.0f)).xyz;
+    vOut.wPos.x += sin(params.mTime) * cos(params.mTime);
+    vOut.wPos.y += sin(params.mTime) * sin(params.mTime);
+    vOut.wPos.z += cos(params.mTime) * cos(params.mTime);
+
+
     vOut.wNorm    = normalize(mat3(transpose(inverse(params.mModel))) * wNorm.xyz);
     vOut.wTangent = normalize(mat3(transpose(inverse(params.mModel))) * wTang.xyz);
     vOut.texCoord = vTexCoordAndTang.xy;
