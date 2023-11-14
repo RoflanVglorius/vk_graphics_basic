@@ -23,11 +23,11 @@ layout(std430, binding = 2) buffer Diff
 
 void main() 
 {
-    size_t idx = gl_GlobalInvocationID.x;
+    uint idx = gl_GlobalInvocationID.x;
     if (idx < PushConstant.len) {
-        float smoothed = 0
-        for (int64_t i = int64_t(idx) - 3; i < idx + 4; ++i) {
-            if (i >= 0 && i < int64_t(PushConstant.len)) {
+        float smoothed = 0;
+        for (int i = int(idx) - 3; i < int(idx) + 4; ++i) {
+            if (i >= 0 && i < int(PushConstant.len)) {
                 smoothed += A[i] / 7.0f;
             }
         }

@@ -3,7 +3,7 @@
 
 int main()
 {
-  constexpr int LENGTH = 166'666'666;
+  constexpr int LENGTH = 100000;
   constexpr int VULKAN_DEVICE_ID = 0;
 
   std::shared_ptr<ICompute> app = std::make_unique<SimpleCompute>(LENGTH);

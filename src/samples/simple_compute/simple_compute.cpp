@@ -227,30 +227,30 @@ void SimpleCompute::Execute()
   //Ждём конца выполнения команд
   VK_CHECK_RESULT(vkWaitForFences(m_device, 1, &m_fence, VK_TRUE, 100000000000));
 
-  std::vector<float> values(m_length);
-  m_pCopyHelper->ReadBuffer(m_sum, 0, values.data(), sizeof(float) * values.size());
+  std::vector<float> diffs(m_length);
+  m_pCopyHelper->ReadBuffer(m_sum, 0, diffs.data(), sizeof(float) * diffs.size());
   double diff_sum = 0.0;
-  for (auto v: values) {
+  for (auto v: diffs) {
     diff_sum += v;
   }
   auto duration = std::chrono::high_resolution_clock::now() - start_time;
   std::cout << "Result sum on GPU: " << diff_sum << '\n';
   std::cout << "Time on GPU: " << std::chrono::duration_cast<std::chrono::milliseconds>(duration).count() << " ms\n";
 
+
   start_time = std::chrono::high_resolution_clock::now();
+  std::vector<float> values(m_length);
+  m_pCopyHelper->ReadBuffer(m_A, 0, values.data(), sizeof(float) * values.size());
   std::vector<float> cpu_buffer(m_length);
-  for (size_t i = 0; i < cpu_buffer.size(); ++i) {
-    cpu_buffer[i] = float(rand()) / float(RAND_MAX);
-  }
   diff_sum = 0;
-  for (int64_t i = 0; i < int64_t(cpu_buffer.size()); ++i) {
+  for (int64_t i = 0; i < int64_t(m_length); ++i) {
     float smoothed = 0;
     for (int64_t j = i - 3; j < i + 4; ++j) {
-        if (j >= 0 && j < int64_t(cpu_buffer.size())) {
-            smoothed += cpu_buffer[j] / 7.0;
+        if (j >= 0 && j < int64_t(values.size())) {
+            smoothed += values[j] / 7.0;
         }
     }
-    cpu_buffer[i] = cpu_buffer[i] - smoothed;
+    cpu_buffer[i] = values[i] - smoothed;
   }
   for (size_t i = 0; i < cpu_buffer.size(); ++i) {
     diff_sum += cpu_buffer[i];
