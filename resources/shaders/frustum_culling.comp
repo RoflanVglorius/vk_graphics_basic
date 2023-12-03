@@ -1,0 +1,61 @@
+#version 430
+
+layout( local_size_x = 128 ) in;
+
+struct VkDrawIndexedIndirectCommand {
+    uint    indexCount;
+    uint    instanceCount;
+    uint    firstIndex;
+    int     vertexOffset;
+    uint    firstInstance;
+};
+
+layout(push_constant) uniform params_t 
+{
+    mat4 mProjView;
+    vec4 mMinLims;
+    vec4 mMaxLims;
+    uint mInstanceCount;
+} params;
+
+layout(std430, binding = 0) buffer IndirectDrawBuffer {
+    VkDrawIndexedIndirectCommand draw_cmd;
+};
+
+layout(std430, binding = 1) readonly buffer MoveInstance {
+    mat4 moveInstance[];
+};
+
+layout(std430, binding = 2) buffer InstancesIndices {
+    uint instancesIndices[];
+};
+
+
+void main() {
+    if (gl_GlobalInvocationID.x == 0) {
+        draw_cmd.instanceCount = 0;
+    }
+
+	if(gl_GlobalInvocationID.x < params.mInstanceCount) {
+        mat4 model = params.mProjView * moveInstance[gl_GlobalInvocationID.x];
+        float limsX[2] = {params.mMinLims.x, params.mMaxLims.x};
+        float limsY[2] = {params.mMinLims.y, params.mMaxLims.y};
+        float limsZ[2] = {params.mMinLims.z, params.mMaxLims.z};
+        for (uint i = 0; i < 2; ++i) {
+            for (uint j = 0; j < 2; ++j) {
+                for (uint m = 0; m < 2; ++m) {
+                    vec4 instanceLim = {limsX[i], limsY[j], limsZ[m], 1.0};
+                    instanceLim = model * instanceLim;
+                    if ((instanceLim.x > -instanceLim.w) && (instanceLim.x < instanceLim.w) &&
+                        (instanceLim.y > -instanceLim.w) && (instanceLim.y < instanceLim.w) &&
+                        (instanceLim.z > 0.0) && (instanceLim.z < instanceLim.w)
+                    ) {
+                        uint idx = atomicAdd(draw_cmd.instanceCount, 1);
+                        instancesIndices[idx] = gl_GlobalInvocationID.x;
+                        return;
+                    }
+                }
+            }
+        }
+	}
+}

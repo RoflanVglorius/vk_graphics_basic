@@ -24,15 +24,26 @@ layout (location = 0 ) out VS_OUT
 
 } vOut;
 
+layout(std430, binding = 1) readonly buffer MoveInstance {
+    mat4 moveInstance[];
+};
+
+layout(std430, binding = 2) readonly buffer VisibleIndices {
+    uint visibleIndices[];
+};
+
+
 out gl_PerVertex { vec4 gl_Position; };
 void main(void)
 {
+    mat4 model = moveInstance[visibleIndices[gl_InstanceIndex]];
+
     const vec4 wNorm = vec4(DecodeNormal(floatBitsToInt(vPosNorm.w)),         0.0f);
     const vec4 wTang = vec4(DecodeNormal(floatBitsToInt(vTexCoordAndTang.z)), 0.0f);
 
-    vOut.wPos     = (params.mModel * vec4(vPosNorm.xyz, 1.0f)).xyz;
-    vOut.wNorm    = normalize(mat3(transpose(inverse(params.mModel))) * wNorm.xyz);
-    vOut.wTangent = normalize(mat3(transpose(inverse(params.mModel))) * wTang.xyz);
+    vOut.wPos     = (model * vec4(vPosNorm.xyz, 1.0f)).xyz;
+    vOut.wNorm    = normalize(mat3(transpose(inverse(model))) * wNorm.xyz);
+    vOut.wTangent = normalize(mat3(transpose(inverse(model))) * wTang.xyz);
     vOut.texCoord = vTexCoordAndTang.xy;
 
     gl_Position   = params.mProjView * vec4(vOut.wPos, 1.0);

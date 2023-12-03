@@ -13,7 +13,7 @@ void SimpleRenderTexture::LoadScene(const char* path, bool transpose_inst_matric
 {
   m_pScnMgr->LoadSceneXML(path, transpose_inst_matrices);
 
-  CreateUniformBuffer();
+  CreateBuffers();
   LoadTexture();
   SetupSimplePipeline();
 

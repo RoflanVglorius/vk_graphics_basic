@@ -20,8 +20,8 @@ class SimpleRender : public IRender
 public:
   const std::string VERTEX_SHADER_PATH = "../resources/shaders/simple.vert";
   const std::string FRAGMENT_SHADER_PATH = "../resources/shaders/simple.frag";
-
   const std::string TRAJECTORY_SAVE_PATH = "trajectory.txt";
+  const std::string FRUSTUM_CULLING_SHADER_PATH = "../resources/shaders/frustum_culling.comp";
 
   SimpleRender(uint32_t a_width, uint32_t a_height);
   ~SimpleRender()  { Cleanup(); };
@@ -94,18 +94,45 @@ protected:
     LiteMath::float4x4 model;
   } pushConst2M;
 
+  struct
+  {
+    mat4 projView;
+    float4 minLims;
+    float4 maxLims;
+    uint instanceCount;
+  } pushConstFrustumCulling;
+
+
+  pipeline_data_t m_basicForwardPipeline {};
+  pipeline_data_t m_frustumCullingPipeline{};
+
   UniformParams m_uniforms {};
   VkBuffer m_ubo = VK_NULL_HANDLE;
   VkDeviceMemory m_uboAlloc = VK_NULL_HANDLE;
   void* m_uboMappedMem = nullptr;
 
-  pipeline_data_t m_basicForwardPipeline {};
-
   VkDescriptorSet m_dSet = VK_NULL_HANDLE;
   VkDescriptorSetLayout m_dSetLayout = VK_NULL_HANDLE;
   VkRenderPass m_screenRenderPass = VK_NULL_HANDLE; // main renderpass
 
+  VkDescriptorSet m_dFrustumCullingSet = VK_NULL_HANDLE;
+  VkDescriptorSetLayout m_dFrustumCullingSetLayout = VK_NULL_HANDLE;
+
+  VkBuffer m_moveInstance = VK_NULL_HANDLE;
+  VkDeviceMemory m_moveInstanceAlloc = VK_NULL_HANDLE;
+  void *m_moveInstanceMappedMem = nullptr;
+
+  VkDrawIndexedIndirectCommand m_drawCmd;
+  VkBuffer m_drawCmdBuff = VK_NULL_HANDLE;
+  VkDeviceMemory m_drawCmdBuffAlloc = VK_NULL_HANDLE;
+  void *m_drawCmdBuffMappedMem = nullptr;
+
+  VkBuffer m_instancesIndices = VK_NULL_HANDLE;
+  VkDeviceMemory m_instancesIndicesAlloc = VK_NULL_HANDLE;
+  void *m_instancesIndicesMappedMem = nullptr;
+
   std::shared_ptr<vk_utils::DescriptorMaker> m_pBindings = nullptr;
+  std::shared_ptr<vk_utils::DescriptorMaker> m_pCullingBindings = nullptr;
 
   // *** presentation
   VkSurfaceKHR m_surface = VK_NULL_HANDLE;
@@ -118,7 +145,6 @@ protected:
   std::shared_ptr<IRenderGUI> m_pGUIRender;
   virtual void SetupGUIElements();
   void DrawFrameWithGUI();
-
   bool m_trackCameraTrajectory = false;
   bool m_saveCameraTrajectory = false;
   std::vector<float4x4> m_cameraTrajectory;
@@ -153,7 +179,7 @@ protected:
   void CleanupPipelineAndSwapchain();
   void RecreateSwapChain();
 
-  void CreateUniformBuffer();
+  void CreateBuffers();
   void UpdateUniformBuffer(float a_time);
 
   void Cleanup();
