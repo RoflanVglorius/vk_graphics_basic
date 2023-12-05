@@ -45,6 +45,8 @@ public:
 
 private:
   etna::GlobalContext* m_context;
+  etna::Image image;
+  etna::Image blurredImage;
   etna::Image mainViewDepth;
   etna::Image shadowMap;
   etna::Sampler defaultSampler;
@@ -77,6 +79,7 @@ private:
 
   etna::GraphicsPipeline m_basicForwardPipeline {};
   etna::GraphicsPipeline m_shadowPipeline {};
+  etna::ComputePipeline m_gaussianBlurPipeline{};
 
   std::shared_ptr<vk_utils::DescriptorMaker> m_pBindings = nullptr;
   
